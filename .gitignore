@@ -13,6 +13,8 @@ tests/*
 !tests/test_api_auth.py
 !tests/test_parser.py
 !tests/conftest.py
+!tests/test_api_raw_data.py
+!tests/test_api_auth_raw_data.py
 
 !codeforces_api/
 codeforces_api/*

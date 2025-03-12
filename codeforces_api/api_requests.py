@@ -55,12 +55,13 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
             raise SystemError("Codeforces is unavailable now.")
         return self.get_response(request)
 
-    def __init__(self, api_key=None, secret=None, random_number=1000000, method="POST"):
+    def __init__(self, api_key=None, secret=None, random_number=1000000, method="POST", raw_data=False):
         """
         Initializing class. All we will need is a session to optimize performance.
         """
         super().__init__(api_key, secret, random_number)
         self.session = requests.Session()
+        self.raw_data = raw_data
         if method == "POST" or method == "GET":
             self.method = method
         else:
@@ -70,10 +71,10 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
         """
         Get blogEntry.comments for blog, blog_entry_id required.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         return [
-            Comment.de_json(comment)
+            Comment.de_json(comment) if not self.raw_data else comment
             for comment in self._make_request(
                 "blogEntry.comments", **{"blogEntryId": str(blog_entry_id)}
             )
@@ -83,20 +84,19 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
         """
         Get blogEntry.view for blog, blog_entry_id required.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
-        return BlogEntry.de_json(
-            self._make_request("blogEntry.view", **{"blogEntryId": str(blog_entry_id)})
-        )
+        blogEntry = self._make_request("blogEntry.view", **{"blogEntryId": str(blog_entry_id)})
+        return BlogEntry.de_json(blogEntry) if not self.raw_data else blogEntry
 
     def contest_hacks(self, contest_id):
         """
         Get contest.hacks for contest, contest_id required.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         return [
-            Hack.de_json(hack)
+            Hack.de_json(hack) if not self.raw_data else hack
             for hack in self._make_request(
                 "contest.hacks", **{"contestId": str(contest_id)}
             )
@@ -109,7 +109,7 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
         Returns parsed response from codeforces.com
         """
         return [
-            Contest.de_json(contest)
+            Contest.de_json(contest) if not self.raw_data else contest
             for contest in self._make_request(
                 "contest.list", **{"gym": str(gym).lower()}
             )
@@ -119,10 +119,10 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
         """
         Get contest.ratingChanges for the contest, contest_id required.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         return [
-            RatingChange.de_json(rating_change)
+            RatingChange.de_json(rating_change) if not self.raw_data else rating_change
             for rating_change in self._make_request(
                 "contest.ratingChanges", **{"contestId": str(contest_id)}
             )
@@ -150,7 +150,7 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
 
         show_unofficial is used for adding or removing not official participants.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         if not isinstance(handles, list):
             raise TypeError("Handles should be a list")
@@ -175,14 +175,14 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
             parameters["room"] = str(room)
         response = self._make_request("contest.standings", **parameters)
         result = {
-            "contest": Contest.de_json(response["contest"]),
+            "contest": Contest.de_json(response["contest"]) if not self.raw_data else response["contest"],
             "problems": [],
             "rows": [],
         }
         for problem in response["problems"]:
-            result["problems"].append(Problem.de_json(problem))
+            result["problems"].append(Problem.de_json(problem) if not self.raw_data else problem)
         for row in response["rows"]:
-            result["rows"].append(RanklistRow.de_json(row))
+            result["rows"].append(RanklistRow.de_json(row) if not self.raw_data else row)
         return result
 
     def contest_status(self, contest_id, handle="", start=-1, count=-1):
@@ -195,7 +195,7 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
 
         handle is used for specifying a user.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         if contest_id is None:
             raise TypeError("Contest_id is required")
@@ -207,7 +207,7 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
         if count != -1:
             parameters["count"] = str(count)
         return [
-            Submission.de_json(submission)
+            Submission.de_json(submission) if not self.raw_data else submission
             for submission in self._make_request("contest.status", **parameters)
         ]
 
@@ -219,7 +219,7 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
 
         problemset_name is a string with an additional archive name. For example 'acmsguru'.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         if not isinstance(tags, list):
             raise TypeError("Tags should be a list")
@@ -231,10 +231,10 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
         result = {"problems": [], "problem_statistics": []}
         response = self._make_request("problemset.problems", **parameters)
         for problem in response["problems"]:
-            result["problems"].append(Problem.de_json(problem))
+            result["problems"].append(Problem.de_json(problem) if not self.raw_data else problem)
         for problem_statistic in response["problemStatistics"]:
             result["problem_statistics"].append(
-                ProblemStatistic.de_json(problem_statistic)
+                ProblemStatistic.de_json(problem_statistic) if not self.raw_data else problem_statistic
             )
         return result
 
@@ -248,7 +248,7 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
 
         For example 'acmsguru'.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         if count > 1000:
             raise OverflowError("Count should be less or equal to 1000")
@@ -258,7 +258,7 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
         if problemset_name != "":
             parameters["problemsetName"] = problemset_name
         return [
-            Submission.de_json(submission)
+            Submission.de_json(submission) if not self.raw_data else submission
             for submission in self._make_request(
                 "problemset.recentStatus", **parameters
             )
@@ -272,12 +272,12 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
 
         max_count should be less or equal to 100.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         if max_count > 100:
             raise OverflowError("Max_count should be less or equal to 1000")
         return [
-            RecentAction.de_json(recent_action)
+            RecentAction.de_json(recent_action) if not self.raw_data else recent_action
             for recent_action in self._make_request(
                 "recentActions", **{"maxCount": str(max_count)}
             )
@@ -289,12 +289,12 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
 
         handle is required.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         if handle == "":
             raise TypeError("Handle should not be empty")
         return [
-            BlogEntry.de_json(blog_entry)
+            BlogEntry.de_json(blog_entry) if not self.raw_data else blog_entry
             for blog_entry in self._make_request(
                 "user.blogEntries", **{"handle": str(handle)}
             )
@@ -308,7 +308,7 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
 
         only_online should be boolean.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         if self.anonymous:
             raise TypeError("Auth is required.")
@@ -322,7 +322,7 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
 
         handles should be a list of users, up to 10000.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         if not isinstance(handles, list):
             raise TypeError("Handles should be a list")
@@ -332,7 +332,7 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
         for handle in handles:
             handles_str += str(handle) + ";"
         return [
-            User.de_json(user)
+            User.de_json(user) if not self.raw_data else user
             for user in self._make_request("user.info", **{"handles": handles_str})
         ]
 
@@ -342,10 +342,10 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
 
         active_only is used to show only users, which participated last month.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         return [
-            User.de_json(user)
+            User.de_json(user) if not self.raw_data else user
             for user in self._make_request(
                 "user.ratedList", **{"activeOnly": str(active_only).lower()}
             )
@@ -357,10 +357,10 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
 
         handle should be a string.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         return [
-            RatingChange.de_json(rating_change)
+            RatingChange.de_json(rating_change) if not self.raw_data else rating_change
             for rating_change in self._make_request(
                 "user.rating", **{"handle": str(handle)}
             )
@@ -376,7 +376,7 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
 
         count is the number of attempts to return.
 
-        Returns parsed response from codeforces.com.
+        Returns raw (parsed) response from codeforces.com if raw_data is (not) true.
         """
         parameters = {
             "handle": str(handle),
@@ -386,6 +386,6 @@ class CodeforcesApi(CodeforcesApiRequestMaker):
         if count != -1:
             parameters["count"] = str(count)
         return [
-            Submission.de_json(submission)
+            Submission.de_json(submission) if not self.raw_data else submission
             for submission in self._make_request("user.status", **parameters)
         ]
